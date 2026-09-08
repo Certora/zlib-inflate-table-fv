@@ -1,5 +1,5 @@
 /-
-  Phase 5, step D: the function entry.
+  The function entry.
 
   `Sep.satisfies_internal` (CCLib/Funspec.lean:169) splits the memory-safety
   theorem in two along a shared assertion `Pbody`:
@@ -10,7 +10,7 @@
       this file.**
     * `body : Triple … Pbody f_inflate_table.fn_body { ret := S.post, … }` —
       the phase chain over the 33 segments of `InflateTable.Body.fullBody`.
-      That is step E.
+      That is InflateTableChain.lean.
 
   So `Pbody` (below) is the D/E interface.  Note the `ret` condition of `body`
   is `S.post` *alone*, with no locals: `Sep.triple_return` frees them (its
@@ -244,12 +244,12 @@ theorem inflate_table_entry (ge : CGenv) (hcenv : ge.genv_cenv = Layout.cenv)
   rw [sep_assoc_eq, sep_assoc_eq] at hsep
   exact hsep
 
-/-! ## §D4 What is left
+/-! ## §D4 The body triple
 
 With `hentry` discharged, the memory-safety theorem is *exactly* the body
-triple.  This is the statement step E has to prove; nothing else remains. -/
+triple, which InflateTableChain.lean proves. -/
 
-/-- The body triple E owes: `Pbody` in, the spec's postcondition out on
+/-- The body triple: `Pbody` in, the spec's postcondition out on
     `return`, and unreachable on every other exit (a function body cannot fall
     through, `break`, `continue`, or `goto` out of itself — `inflate_table`'s
     body ends in `return`, and it has no labels).
@@ -263,7 +263,7 @@ abbrev BodyTriple (ge : CGenv) (L : Layout) (ty : _root_.Int)
     { normal := Assn.no, brk := Assn.no, cont := Assn.no,
       ret := (inflateTableSpec L ty codes cap b0 lensF workF).post }
 
-/-- **D is done.**  Memory safety follows from the body triple alone.
+/-- Memory safety follows from the body triple alone.
 
     Note what is *not* a hypothesis: nothing about the caller's memory `m`
     beyond `Agrees`, and no distinctness assumption about the three local

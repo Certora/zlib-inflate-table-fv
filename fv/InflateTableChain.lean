@@ -1,10 +1,10 @@
 /-
-  Phase 5, step E: the phase chain.
+  The phase chain.
 
-  `InflateTableEntry.safe_of_body` reduced memory safety to one triple over
+  `InflateTableEntry.safe_of_body` reduces memory safety to one triple over
   `f_inflate_table.fn_body`, which `Body.body_matches` pins to `Body.fullBody` —
-  a 33-segment right-nested `Ssequence`.  Every segment has a triple (see
-  fv/NEXT.md §2.5(E) for the segment-to-lemma table); this file chains them.
+  a 33-segment right-nested `Ssequence`.  Every segment has a triple in
+  InflateTableBody.lean; this file chains them.
 
   The two things that make the chain work, and cost the most to get right:
 
@@ -63,7 +63,7 @@ theorem Hpro_count_first :
 /-! ## The heap, component by component
 
 From link 7 on the chain is long enough that spelling `∗`-chains out becomes a
-paren-counting exercise (the standing §3 warning).  These twelve names are the
+paren-counting exercise.  These twelve names are the
 whole footprint; every link states its permutation as a chain of them, and
 `sep_cancel` proves the reassociation after `simp only` unfolds them. -/
 
@@ -720,7 +720,7 @@ theorem link_sort (R : Sep.ExitConds) (cntF wF : Nat → Nat) (v : Val)
     (hpw : permOrder L.pw .Writable = true)
     (hlb : ∀ j, lensF j < 65536) (hwb : ∀ j, wF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs cntF lensF s j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15) (hc16 : codes < 65536)
     (hnoL : Integers.Ptrofs.unsigned L.lensO + 2 * (codes : _root_.Int)
@@ -753,8 +753,8 @@ theorem link_sort (R : Sep.ExitConds) (cntF wF : Nat → Nat) (v : Val)
 /-! ## Link 18 — `fullBody` segment 17: `switch (type)`
 
 Heap-polymorphic in all three arms, so the four-vs-two static-tables question
-raised in §2.5(D3) does **not** arise here: it only matters once `Hrest` is
-fixed, after the switch. -/
+does **not** arise here: it only matters once `Hrest` is fixed, after the
+switch. -/
 
 theorem link_switch_LENS (R : Sep.ExitConds) (H : HProp)
     (l : List (Ident × Val))
@@ -1076,7 +1076,7 @@ theorem spine_C (tail : Stmt) (R : Sep.ExitConds) (M Mn : Nat)
     (hpw : permOrder L.pw .Writable = true)
     (hb : ∀ j, lensF j < 65536) (hwb : ∀ j, workF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF) lensF s j < 65536)
     (hos : ∀ j, offsC (cntC codes lensF) j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
@@ -1205,7 +1205,7 @@ theorem spine_prefix (tail : Stmt) (R : Sep.ExitConds) (k : Nat)
     (hpr : permOrder L.pr .Writable = true)
     (hb : ∀ j, lensF j < 65536) (hwb : ∀ j, workF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF) lensF s j < 65536)
     (hos : ∀ j, offsC (cntC codes lensF) j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
@@ -1263,7 +1263,8 @@ a statement `inflate_table` does not contain — and the association traps that
 bit `bwIncBlock` and `seg6_triple` show that is not a hypothetical. -/
 
 /-- Everything after the sort loop: the `switch`, the main loop's setup, the
-    loop itself, and the epilogue.  This is what step E still owes. -/
+    loop itself, and the epilogue — the part `body_of_tail` reduces
+    `Entry.BodyTriple` to. -/
 abbrev fullBodyTail : Stmt :=
   .Ssequence switchStmt
   (.Ssequence setHuff0
@@ -1307,9 +1308,9 @@ things get instantiated here, all at once:
   assigns *neither*, so `nx = nb = 0` (making `arrayU16 … 0 …` empty) and all
   four tables sit in `Hrest`.
 * **`vx`/`vb`** — the `_base`/`_extra` *values*.  For LENS/DISTS they are real
-  pointers; for CODES they keep the prologue's `nullv`, which is why `Tfix` had
-  to be widened to `Val`s (§2.5(E0)).  Without that, the CODES branch below
-  would be unstatable.
+  pointers; for CODES they keep the prologue's `nullv`, which is why `Tfix`
+  holds `Val`s rather than pointers — otherwise the CODES branch below would
+  be unstatable.
 * **`mtch`** — 20, 257, or 0.
 
 `here` is carved into its three fields here too: `HLoop` holds them separately,
@@ -1800,7 +1801,7 @@ theorem BodyTriple_normLens (L : Layout) (ty : _root_.Int) (codes cap b0 : Nat)
 `Assumptions` field, a model fact the scans established, or a `temps_*` goal on
 the now-concrete tracked list.
 
-These are stated at the **normalised** `lens` (§2.5(E4)), so `hlens15` and
+These are stated at the **normalised** `lens`, so `hlens15` and
 `hlensmax` — which A2 cannot give for the caller's raw `lensF` — hold. -/
 
 section Inst
@@ -1907,7 +1908,7 @@ theorem inst_LENS (lensF' workF' : Nat → Nat) (hcom : Common ge L codes cap le
     (hnn : ∀ j, j ≤ 15 → 0 ≤ leftC (cntC codes lensF') j)
     (hwb : ∀ j, wF j < 65536) (hplaced : Placed lensF' wF codes codes)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF') lensF' s j < 65536)
     (hcodes : codes ≤ 288) (hcap : 852 ≤ cap) (hb032 : b0 < 4294967296) :
     Triple ge (FunctionEntry2 ge) f_inflate_table
@@ -1978,7 +1979,7 @@ theorem inst_LENS (lensF' workF' : Nat → Nat) (hcom : Common ge L codes cap le
 
 /-- **CODES.**  The `switch` sets only `match = 20`, so `base`/`extra` keep the
     prologue's `nullv` — which is statable only because `Tfix` carries them as
-    `Val`s (§2.5(E0)).  Neither table is chosen: `nx = nb = 0` makes
+    `Val`s.  Neither table is chosen: `nx = nb = 0` makes
     `arrayU16 … 0 …` empty and all four ride in `Hrest`.  A3-CODES
     (`codes ≤ 20 = match`) makes the branch that would read them unreachable,
     which is what discharges `hvx`/`hvb` and `ha3x`/`ha3b` vacuously. -/
@@ -1994,7 +1995,7 @@ theorem inst_CODES (lensF' workF' : Nat → Nat) (hcom : Common ge L codes cap l
     (hnn : ∀ j, j ≤ 15 → 0 ≤ leftC (cntC codes lensF') j)
     (hwb : ∀ j, wF j < 65536) (hplaced : Placed lensF' wF codes codes)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF') lensF' s j < 65536)
     (hcodes : codes ≤ 20) (hA5c : 2 ^ (Nat.max (Nat.min b0 M) Mn) ≤ cap)
     (hA5m : M ≤ Nat.max (Nat.min b0 M) Mn) (hb032 : b0 < 4294967296) :
@@ -2078,7 +2079,7 @@ theorem inst_DISTS (lensF' workF' : Nat → Nat) (hcom : Common ge L codes cap l
     (hnn : ∀ j, j ≤ 15 → 0 ≤ leftC (cntC codes lensF') j)
     (hwb : ∀ j, wF j < 65536) (hplaced : Placed lensF' wF codes codes)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF') lensF' s j < 65536)
     (hcodes : codes ≤ 32) (hcap : 592 ≤ cap) (hb032 : b0 < 4294967296) :
     Triple ge (FunctionEntry2 ge) f_inflate_table
@@ -2148,10 +2149,11 @@ theorem inst_DISTS (lensF' workF' : Nat → Nat) (hcom : Common ge L codes cap l
 
 end Inst
 
-/-! ## What step E still owes
+/-! ## Reducing the body triple to the tail
 
 With the spine done, `Entry.BodyTriple` — and so `inflate_table_safe` — reduces
-to a triple for `fullBodyTail` alone. -/
+to a triple for `fullBodyTail` alone, one per code type; `inst_CODES`,
+`inst_LENS` and `inst_DISTS` above discharge those. -/
 
 theorem body_of_tail (k : Nat) (hcap : cap = 2 + k)
     (hc16 : codes < 65536) (hb032 : b0 < 4294967296)
@@ -2166,7 +2168,7 @@ theorem body_of_tail (k : Nat) (hcap : cap = 2 + k)
     (hpr : permOrder L.pr .Writable = true)
     (hb : ∀ j, lensF j < 65536) (hwb : ∀ j, workF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs (cntC codes lensF) lensF s j < 65536)
     (hos : ∀ j, offsC (cntC codes lensF) j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
@@ -2183,7 +2185,7 @@ theorem body_of_tail (k : Nat) (hcap : cap = 2 + k)
     (hsymDb : Genv.findSymbol ge.genv_genv _dbase = some L.dbB)
     (hsymDx : Genv.findSymbol ge.genv_genv _dext = some L.dxB)
     (hty : ty = 0 ∨ ty = 1 ∨ ty = 2)
-    -- what each code type still owes: the loop setup, the loop, the epilogue
+    -- per code type: the loop setup, the loop, the epilogue
     (hC : ∀ (bh bc bo : Block), bh ≠ bc → bh ≠ bo → bc ≠ bo →
       ∀ (M Mn : Nat) (wF : Nat → Nat), M ≤ 15 → M ≠ 0 → 1 ≤ Mn → Mn ≤ M →
       (∀ l, M < l → l ≤ 15 → cntC codes lensF l = 0) →

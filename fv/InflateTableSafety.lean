@@ -21,16 +21,16 @@
   `f_inflate_table.fn_body`) and `Chain.spine_matches` (the seventeen slots the
   phase chain threads are that body's first seventeen, in order).
 
-  `Sep.SatisfiesAt` is total-correctness: it exhibits a finite `Steps` execution
-  to a `Returnstate`.  That implies stuck-freedom — hence memory safety — only
-  modulo determinism of the Clight step relation.  CCLib now proves that
-  (`CC.step_determ`), and `inflate_table_no_stuck` at the bottom of this file
-  makes the `∃`-run → `∀`-run step explicitly: **every** state reachable from
-  the call — at any trace — either steps or is the return state, and the run
-  emits no observable event.  That corollary carries two
-  extra axioms (`externalFunctionsSemDeterm`, `inlineAssemblySemDeterm`),
-  inherited from `step_determ`'s external-call case even though this function
-  contains no `Scall`; `inflate_table_safe` itself is unaffected.
+  `Sep.SatisfiesAt` exhibits a finite `Steps` execution to a `Returnstate`.
+  That implies stuck-freedom — hence memory safety — modulo determinism of
+  the Clight step relation, which CCLib proves (`CC.step_determ`).
+  `inflate_table_no_stuck` at the bottom of this file makes the `∃`-run →
+  `∀`-run step explicit: **every** state reachable from the call — at any
+  trace — either steps or is the return state, and the run emits no observable
+  event.  That corollary carries two extra axioms
+  (`externalFunctionsSemDeterm`, `inlineAssemblySemDeterm`), inherited from
+  `step_determ`'s external-call case even though this function contains no
+  `Scall`; `inflate_table_safe` itself is unaffected.
 
   Statement-design notes for the reviewer
   ---------------------------------------
@@ -43,11 +43,10 @@
     distinct from the caller's blocks only where aliasing would break the
     `∗`-chain; unique ownership already forces all of that, so no explicit
     distinctness hypotheses appear — `preHeap`'s satisfiability carries them.
-  * A `Distinct`-style identifier hypothesis (as in IsSortedReal.entry_wf) was
-    anticipated here for `FunctionEntry2`'s no-repetition side conditions over
-    the 6 parameters + 54 temporaries + 3 locals.  It turned out not to be
-    needed: all three conditions `decide` on the concrete AST
-    (`Entry.entry_facts`), so no such hypothesis appears in the statement.
+  * No identifier-distinctness hypothesis appears in the statement:
+    `FunctionEntry2`'s no-repetition side conditions over the 6 parameters +
+    54 temporaries + 3 locals all `decide` on the concrete AST
+    (`Entry.entry_facts`).
   * `hcenv : ge.genv_cenv = Layout.cenv` IS a hypothesis, and is unavoidable:
     `sizeof`, `fieldOffset`, and `accessMode` for `struct code` are read out of
     `ge.genv_cenv`, so a `ge` with a different composite environment describes
@@ -66,14 +65,14 @@ open Inftrees
 
 namespace InflateTable
 
-/-! ## The body triple (phase E)
+/-! ## The body triple
 
-Step D (`InflateTableEntry.lean`) reduced memory safety to a single `Triple`
-over `f_inflate_table.fn_body`; `InflateTableChain.lean` proves it, and this is
+`InflateTableEntry.lean` reduces memory safety to a single `Triple` over
+`f_inflate_table.fn_body`; `InflateTableChain.lean` proves it, and this is
 where its hypotheses are supplied from `SideConds`/`Assumptions`.
 -/
 
-/-- **Phase E** — the body triple, assembled.  `Entry.BodyTriple` unfolds to
+/-- The body triple, assembled.  `Entry.BodyTriple` unfolds to
 
       Triple ge (FunctionEntry2 ge) f_inflate_table
         (Entry.Pbody …) f_inflate_table.fn_body
@@ -81,7 +80,7 @@ where its hypotheses are supplied from `SideConds`/`Assumptions`.
           ret := (inflateTableSpec …).post }
 
     and `Body.body_matches : f_inflate_table.fn_body = Body.fullBody` names the
-    statement it has to be chained over.  See fv/NEXT.md §2.5(E). -/
+    statement it has to be chained over. -/
 theorem inflate_table_body
     (ge : CGenv) (hcenv : ge.genv_cenv = Layout.cenv)
     (L : Layout) (ty : _root_.Int) (codes cap b0 : Nat)
@@ -93,7 +92,7 @@ theorem inflate_table_body
     (hsc : SideConds L ty codes cap b0 workF)
     (ha : Assumptions ty codes cap b0 lensF) :
     Entry.BodyTriple ge L ty codes cap b0 lensF workF := by
-  -- run everything at the normalised `lens`/`work` (fv/NEXT.md §2.5(E4)):
+  -- run everything at the normalised `lens`/`work`:
   -- `LoopEnv` wants bounds at *every* index, and A2 / `SideConds.work_repr`
   -- only bound them inside the array
   refine Chain.BodyTriple_normLens ge L ty codes cap b0 lensF workF ?_
@@ -393,23 +392,20 @@ theorem inflate_table_runs
   subst hv
   exact ⟨r, m', hp', Steps.toStar hsteps, hr, hpost, hdj', hag'⟩
 
-/-! ## Stuck-freedom — the caveat, closed
+/-! ## Stuck-freedom
 
 `SatisfiesAt` exhibits **one** execution reaching a `Returnstate`.  Memory safety
-is the stronger "**no** execution gets stuck", and the two coincide only if the
-step relation is deterministic.  That was the standing gap; CCLib now proves it
-(`CC.step_determ`, `CC.starE0_prefix`), so the upgrade is available here.
+is the stronger "**no** execution gets stuck", and the two coincide because the
+step relation is deterministic (`CC.step_determ`, `CC.starE0_prefix`).
 
 The continuation is `Kstop`: that makes the return state *final*
 (`CC.FinalState`), hence stuck, which is what `starE0_prefix` needs — and it is
 the right reading anyway, since what happens after `inflate_table` returns is the
 caller's business, not this function's.
 
-**Reading the single reachability clause.**  It replaces what were two
-overlapping conjuncts (an exhibited run, and a stuck-freedom `∀`).  They were
-*not* redundant — a diverging function would satisfy the `∀` vacuously, so the
-exhibited run was carrying termination — but the merged form implies both and
-repeats nothing:
+**Reading the single reachability clause.**  It carries both termination and
+stuck-freedom (a stuck-freedom `∀` on its own would be satisfied vacuously by
+a diverging function):
 
 * `t := E0`, `s' := ` the call state, `Star.refl` ⟹ `Star … start E0 return`,
   i.e. **termination**;

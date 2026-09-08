@@ -148,12 +148,12 @@ def codeCell (p : Permission) (b : Block) (ofs : _root_.Int) : HProp :=
 
 /-- The table region: `cap` entries of `struct code`, held **field by field**.
 
-    **Why not `anyBytes p b ofs (4*cap)`** (which is what this said until the
-    Phase 5 chain was written): the body performs single-field writes into the
-    region — the root back-pointers of inftrees.c:291-293 assign `next[..].op`,
-    `.bits`, `.val` separately — and `Sep.triple_assign` needs the target
-    field's `mapsto`.  An arbitrary 4-byte run is **not** three `mapsto`s: a
-    `mapsto` requires the bytes to be exactly `encodeVal chunk v`, so a run
+    **Why not `anyBytes p b ofs (4*cap)`**: the body performs single-field
+    writes into the region — the root back-pointers of inftrees.c:291-293
+    assign `next[..].op`, `.bits`, `.val` separately — and `Sep.triple_assign`
+    needs the target field's `mapsto`.  An arbitrary 4-byte run is **not**
+    three `mapsto`s: a `mapsto` requires the bytes to be exactly
+    `encodeVal chunk v`, so a run
     holding, say, a pointer fragment is excluded.  `Body.codeCell_anyBytes`
     gives cells ⊢ bytes, and its docstring records that the converse is false —
     so with `anyBytes` here the body triple is *unprovable*, not merely hard.

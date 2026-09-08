@@ -8,10 +8,10 @@
   isolation from the Clight machinery.  The safety proof in
   InflateTableSafety.lean consumes these through its loop invariants.
 
-  Status: all statements PROVED (Phase 1 complete).  No Mathlib, no axioms
-  beyond Lean's standard three, no `native_decide`.  None of these depends on
-  the ENOUGH/Kraft exhaustive-search bound — see fv/memory-safety.md ("key
-  discovery"): the runtime checks make that theorem unnecessary for safety.
+  No Mathlib, no axioms beyond Lean's standard three, no `native_decide`.
+  None of these depends on the ENOUGH/Kraft exhaustive-search bound — see
+  fv/memory-safety.md: the runtime checks make that theorem unnecessary for
+  safety.
 -/
 
 namespace InflateTable.Model
@@ -289,9 +289,9 @@ theorem offs_succ (lensF : Nat → Nat) (codes l : Nat) (hl : 1 ≤ l) :
   · simp only [decide_eq_true_eq]
     omega
 
-/-- Every offset is bounded by the live count.  (The A2 hypothesis turned out
-    to be unnecessary — the bound is a pure subset argument; the binder is kept
-    for interface stability with the plan.) -/
+/-- Every offset is bounded by the live count.  The bound is a pure subset
+    argument and needs no hypothesis; the unused `_hb` binder is kept so the
+    signature matches its callers. -/
 theorem offs_le_nlive (lensF : Nat → Nat) (codes l : Nat)
     (_hb : ∀ i, i < codes → lensF i ≤ 15) :
     offs lensF codes l ≤ nlive lensF codes := by
@@ -574,7 +574,7 @@ theorem count_prefix_lt (lensF : Nat → Nat) (s codes l : Nat)
   have h2 := count_mono lensF l (show s + 1 ≤ codes from by omega)
   omega
 
-/-! ## Phase 4 — the main table-building loop (inftrees.c:221-295)
+/-! ## The main table-building loop (inftrees.c:221-295)
 
 The loop fills the decoding table.  Its memory-safety obligations are:
 
@@ -627,7 +627,7 @@ theorem usedAfter_le (root c : Nat) (cs : List Nat) :
   rw [usedAfter_cons]
   exact Nat.le_add_right _ _
 
-/-! ## Phase 4b — the reversed-code mass model (I2)
+/-! ## The reversed-code mass model (I2)
 
 The main loop's index-bound clauses (I2) and the fill loop's in-table bound
 (`len - drop ≤ curr`) are re-established across an iteration by a *mass*
@@ -1073,7 +1073,7 @@ theorem subfit_from_look (g : Nat → Nat) (N σ root C len : Nat)
   rw [hlw] at hmass
   omega
 
-/-! ## Phase 5 — what the sort loop's output looks like
+/-! ## What the sort loop's output looks like
 
 `WorkChar` (InflateTableBody §26) is everything the main loop assumes about
 `work[]`.  The sort loop's own proof records only **where** it wrote:

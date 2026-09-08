@@ -1,17 +1,13 @@
 /-
   Layout facts for `struct code` (`__1353`) against THIS program's composite
-  environment (`Inftrees.prog.prog_comp_env`) — item 6 of
-  fv/phase2-cclib-gaps.md, done on the zlib side as offered.
+  environment (`Inftrees.prog.prog_comp_env`).
 
   Pattern: InflateMeasure.lean (export repo) — one batched `decide` per table,
-  projections at use sites; `rfl` where no environment is involved.  All
-  values match the ones the developer pre-checked in
-  fv/phase2-cclib-gaps.RESPONSE.md.
+  projections at use sites; `rfl` where no environment is involved.
 
   Also here: the `Cop.semSwitchArg` facts for the `switch (type)` scrutinee —
-  the RESPONSE flagged its unsigned-reading claim as "a reading of the code,
-  not a verified fact"; the three `rfl`s below verify it for the values the
-  spec's `ty_valid` admits.
+  three `rfl`s verifying, for the values the spec's `ty_valid` admits, that the
+  selected case index is the numeral itself.
 -/
 import InftreesAST
 

@@ -1,18 +1,14 @@
 /-
-  Phase 3: the body of `inflate_table`, segment by segment.
+  The body of `inflate_table`, segment by segment.
 
   This file works through the generated AST (InftreesAST.lean:444-1545) in
   source order, one triple per segment, in the style of the export repo's
   `U16LoopSep.lean` (the acceptance test that is literally this function's
   first loop).  Segments carry the SMALLEST heap footprint they touch; the
   full-footprint assembly (framing `preHeap`'s other components around each
-  segment) is Phase 5's job.
-
-  Section map (inftrees.c line numbers):
-    §0  operator/value bridges (all `rfl` against the computable semantics)
-    §1  environment (3 locals) and the tracked-temporaries lists
-    §2  prologue: `base = extra = 0; match = 0` (normalized Ssets)
-    §3  loop 1 (116-117): zero `count[0..15]`  — undef suffix → zeroed array
+  segment) is InflateTableChain.lean's job.  Each `§n` section header below
+  names its segment and the inftrees.c lines it covers; §27's `body_matches`
+  pins the reassembled body to the generated AST by `rfl`.
 -/
 import InflateTableSpec
 import InflateTableLayout
@@ -126,7 +122,7 @@ theorem classify_count_uint :
 is an existential over byte runs, but `Sep.triple_exists` peels an existential
 only at the **top** of an `Assn`.  These three lemmas move one out from under a
 `∗` and out of a `LocalSt`, which is what every carve of the table region needs
-in the Phase 5 chain.  Stated as equalities so they can be `rw`n under
+in InflateTableChain.lean.  Stated as equalities so they can be `rw`n under
 anything. -/
 
 theorem sep_hexists_l {α : Sort u} (f : α → HProp) (Q : HProp) :
@@ -960,8 +956,8 @@ the one being compiled.
 The guards are positional (they carry the prefix of the body), so they nest:
 the one below pins the prologue, `loop1` and `loop2` at once — and with them
 everything inside those loops (`guard1`/`assign1`/`incr1`, `iter2`/`incr2`).
-Phase 5 replaces them with a single `fn_body = fullBody := rfl` covering the
-whole function. -/
+§27's `body_matches` (`fn_body = fullBody := rfl`) covers the whole function
+and subsumes this one. -/
 
 theorem prologue_and_loops12_match : ∃ rest : Stmt,
     f_inflate_table.fn_body
@@ -3419,8 +3415,8 @@ end Offs6
 `for (sym = 0; sym < codes; sym++) if (lens[sym] != 0) work[offs[lens[sym]]++] = sym;`
 
 The safety-critical write of the whole prologue: `work`'s index is a *value
-read out of memory*, so its bound is a theorem — Phase 1's
-`sort_write_lt_nlive` — not a check.  clightgen reads `lens[sym]` three times
+read out of memory*, so its bound is a theorem — `Model.sort_write_lt_nlive`
+— not a check.  clightgen reads `lens[sym]` three times
 (`_t'26`, `_t'28`, `_t'27`; no store between, so all three agree) and keeps
 the old offset in `_t'4`. -/
 
@@ -3500,8 +3496,8 @@ abbrev H7 (bo : Block) (pl pw : Permission) (lensB workB : Block)
 /-- **The placing branch**, for a symbol with nonzero length `d + 1`: read the
     offset, bump it, and store the symbol into `work` at the OLD offset.
 
-    The `work` index is a value read out of memory; `sort_write_lt_nlive`
-    (Phase 1) is what bounds it. -/
+    The `work` index is a value read out of memory; `Model.sort_write_lt_nlive`
+    is what bounds it. -/
 theorem sort_place_step
     (hpl : permOrder pl .Readable = true)
     (hpw : permOrder pw .Writable = true)
@@ -4156,7 +4152,7 @@ theorem body7_triple
     (hpw : permOrder pw .Writable = true)
     (hlb : ∀ j, lensF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs cnt lensF s j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
     (hc16 : codes < 65536)
@@ -4307,7 +4303,7 @@ theorem loop7_triple
     (hpw : permOrder pw .Writable = true)
     (hlb : ∀ j, lensF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs cnt lensF s j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
     (hc16 : codes < 65536)
@@ -4345,7 +4341,7 @@ theorem seg7_triple
     (hpw : permOrder pw .Writable = true)
     (hlb : ∀ j, lensF j < 65536)
     -- `s ≤ codes`: without it this is false at `j = 0`, where the count
-    -- grows with `s` (§2.5(E6))
+    -- grows with `s`
     (hgb : ∀ s, s ≤ codes → ∀ j, sortOffs cnt lensF s j < 65536)
     (hlens15 : ∀ i, i < codes → lensF i ≤ 15)
     (hc16 : codes < 65536)
@@ -4972,8 +4968,8 @@ theorem localst_perm (E : Env) (lx : List (Ident × Val)) (H H' : HProp)
     `*table` past them, sets `*bits = 1`, and returns 0.
 
     The footprint arrives already carved and in the order the statements
-    consume it — the caller (Phase 5) does the `here_carve` and the
-    `anyBytes_split` of the two table entries once. -/
+    consume it — the caller (InflateTableChain.lean) does the `here_carve` and
+    the `anyBytes_split` of the two table entries once. -/
 theorem maxzero_block_triple
     (hcenv : ge.genv_cenv = Inftrees.prog.prog_comp_env)
     (hdbc : bh ≠ bc) (hdbo : bh ≠ bo) (hdco : bc ≠ bo)
@@ -6415,7 +6411,7 @@ end RegionWrite
 rather than a `LocalSt` — equivalent, since `LocalSt`'s environment and
 temporaries conditions do not mention the heap, but not syntactically equal.
 `localst_frame_only` does the conversion once, for the `.only`-postcondition
-shape the straight-line segments have.  The Phase 5 chain needs it wherever a
+shape the straight-line segments have.  The chain needs it wherever a
 segment's footprint is *smaller* than the ambient one — `readRoot`, whose
 triple mentions only the `*bits` cell, is the first. -/
 
@@ -6523,7 +6519,7 @@ theorem frame_seg_only (ge : CGenv) (fe : EntryRel) (E : Env)
 
 `maxzero_block_triple` (§13) proves the block itself, but wants its footprint
 already carved: `here` as three field cells and the first two table entries as
-concrete byte runs.  Doing that carve in the Phase 5 chain would mean carrying
+concrete byte runs.  Doing that carve in the chain would mean carrying
 the carved shape through every other segment, so it is done **here**, inside
 the `if`, and only on the branch that needs it.  The `max ≠ 0` branch is
 `Sskip` and keeps the uncarved footprint, which is what §6 and §9-§12 expect. -/
@@ -6614,8 +6610,8 @@ theorem mz_carve (l : List (Ident × Val))
       (sep_mono (entails_refl _) (sep_mono (entails_refl _)
         (sep_mono (codeCell_anyBytes pr tB _ hal)
           (sep_mono (codeCell_anyBytes pr tB _
-              -- `hal` is stated at `CC.Z`, where `omega` cannot see it (the
-              -- standing note); re-elaborate it at `_root_.Int` first.
+              -- `hal` is stated at `CC.Z`, where `omega` cannot see it (see
+              -- `no_wrap_mono`); re-elaborate it at `_root_.Int` first.
               (by obtain ⟨A, hA⟩ : ∃ A : _root_.Int,
                     Integers.Ptrofs.unsigned tO = A := ⟨_, rfl⟩
                   have hal' : A % (4 : _root_.Int) = 0 := by rw [← hA]; exact hal
@@ -8951,7 +8947,7 @@ end Look
         …root back-pointer writes (§19)…
 
 One statement per lemma, each over an abstract tracked list `T` with the
-written temporary at the head, so the main-loop assembly (Phase 4) can chain
+written temporary at the head, so the main-loop assembly (§26) can chain
 them without re-deriving anything.
 
 Only two of these carry a stuck-freedom obligation, and both are the same one:
@@ -10680,8 +10676,8 @@ chain.  The tracked result is `if root < len ∧ huff % 2^root ≠ low then 1 el
 bit reasoning.  (`huff & mask` is `huff % 2^root` because `mask = 2^root - 1` —
 `Nat.and_two_pow_sub_one_eq_mod`, as in §22's `low_set_triple`.)
 
-**With these, every statement of `inflate_table` has a triple.**  What remains
-is the main loop's invariant and the chaining — see `NEXT.md` §2.4(c). -/
+**With these, every statement of `inflate_table` has a triple.**  The main
+loop's invariant is §26; the chaining is InflateTableChain.lean. -/
 
 theorem semBinop_ne_uint_uint (cenv : CompositeEnv) (m : Mem)
     (x y : Integers.Int) :
@@ -11173,8 +11169,8 @@ structure LoopFacts (n max root nwork ncodes nx nb mtch nlive cap : Nat)
 /-- **What the sort loop guarantees about `work[]`** — everything the I2 step
     needs about the loop-constant data.  All of it is a property of
     `(lensF, workF, nlive)` alone, so it is ambient, not part of the loop
-    invariant.  Phase 5 must construct it from the sort loop's postcondition
-    (`sort_write_lt_nlive` et al.) and from A2/A3/kraftOk. -/
+    invariant.  `workchar_of_placed` (§26a) constructs it from the sort loop's
+    postcondition and from A2/A3/kraftOk. -/
 structure WorkChar (nwork ncodes nlive max mtch nx nb : Nat)
     (workF lensF : Nat → Nat) (vx vb : Val) (xB bB : Block) : Prop where
   hnl    : nlive ≤ nwork
@@ -11349,9 +11345,10 @@ theorem huff_shr_lt (huff len drop : Nat) (hdl : drop ≤ len)
 
 Generated from `InftreesAST.lean` by walking the `Ssequence` spine of
 `fn_body`, so they are correct by construction.  They give the statements
-with no chunk lemma yet (prologue `Set`s, the two clamps, the nine
-loop-setup `Set`s, the epilogue) a name, and §27's `body_matches` ties the
-whole assembly back to the real program. -/
+proved by generic single-statement triples rather than a dedicated chunk lemma
+(prologue `Set`s, the two clamps, the nine loop-setup `Set`s, the epilogue) a
+name, and §27's `body_matches` ties the whole assembly back to the real
+program. -/
 
 
 
@@ -11657,8 +11654,9 @@ structure ExitFacts (max root cap nlv : Nat) (workF lensF : Nat → Nat)
   nOaddr   : Integers.Ptrofs.unsigned s.nO
                = Integers.Ptrofs.unsigned tO + 4 * (s.nOff : _root_.Int)
   /-- `count` and `offs` are still u16 arrays.  The epilogue turns both into
-      byte runs for the `return`, so it needs their ranges — and taking them as
-      `∀ s : LoopSt` hypotheses would repeat the §2.5(E2) mistake. -/
+      byte runs for the `return`, so it needs their ranges — carried here
+      rather than as `∀ s : LoopSt` hypotheses, which no caller could
+      discharge. -/
   cntb     : ∀ j, s.cntF j < 65536
   offsb    : ∀ j, s.offsF j < 65536
 
@@ -13418,8 +13416,8 @@ a structure mentioned in one of its binders.
 `body_prefix` is a staging post: it checks that `LoopInv`'s two binders peel
 and that the first link threads.  The remaining ten links follow the same
 shape; what is *not* mechanical is the final step, re-establishing `LoopInv` at
-a smaller measure — that is I2, and it needs model theorems that do not exist
-yet (see §2.4(c) I2). -/
+a smaller measure — that is I2, which rests on the reversed-code mass model of
+InflateTableInvariants.lean (`Model.subfit_from_look`). -/
 
 /-- Everything about the environment that does not change across the loop:
     gathered once so the eleven links do not each need twenty hypotheses. -/
@@ -14687,9 +14685,8 @@ wants a different component at the head.
 
 `HLoop` pins the `table` cell to `.Vptr tB tO`, and the epilogue *changes* it,
 so these are stated over `HLoopT`, which takes the cell's value as a
-parameter.  (Built with a generator rather than by hand: `NEXT.md` §3's
-warning about paren-counting deep `∗`-chains is real — this cost one build
-cycle before I followed it.) -/
+parameter.  (Generated rather than hand-written: deep `∗`-chains are easy to
+mis-parenthesise.) -/
 
 /-- `HLoop` with the `*table` cell's value generalised. -/
 abbrev HLoopT (cntF offsF : Nat → Nat) (u0 u1 u2 vb tv : Val) : HProp :=
@@ -15024,8 +15021,8 @@ theorem exit_epilogue (Ret : Val → HProp)
     (by have := hef.hufflt; have := hef.max15
         have h2 : (2 : Nat) ^ max ≤ 2 ^ 15 := Nat.pow_le_pow_right (by omega) (by omega)
         omega)
-    -- `cntb`/`offsb` come out of `ExitFacts`; taking them as `∀ s : LoopSt`
-    -- hypotheses would repeat the §2.5(E2) mistake
+    -- `cntb`/`offsb` come out of `ExitFacts`, not from `∀ s : LoopSt`
+    -- hypotheses, which no caller could discharge
     (hinb s hef) hef.nOaddr hef.cntb hef.offsb (hret s) R
 
 end MainLoop
@@ -15344,23 +15341,22 @@ theorem exit_write_inbounds
 
 Every chunk above is a hand transcription of a sub-term of
 `f_inflate_table.fn_body`.  `body_matches` pins **all of them at once**, at
-their real positions, with a single `rfl` — the soundness item flagged
-throughout `NEXT.md` §4.  It works by definitional equality: both sides are
-closed terms, so `rfl` succeeds exactly when they are the same term after
-unfolding the `abbrev`s.  No tactics, no axioms.
+their real positions, with a single `rfl`.  It works by definitional equality:
+both sides are closed terms, so `rfl` succeeds exactly when they are the same
+term after unfolding the `abbrev`s.  No tactics, no axioms.
 
-**What this does and does not certify.**  The segment `abbrev`s below whose
+**What this does and does not certify.**  The segment `abbrev`s above whose
 docstring says "generated from the AST" were produced *from the AST text
 itself*, so those parts of the guard are tautological and certify nothing;
-they are here to give Phase 5 named handles for statements that do not yet
-have chunk lemmas.  The guard's real content is the **named chunks** —
+they exist to give the chain named handles for statements proved by generic
+single-statement triples.  The guard's real content is the **named chunks** —
 `loop1`-`loop7`, `maxZeroBlock`, `chk6`, `offs1Init`, `switchStmt`,
 `enoughChk`, `loopBody` — and transitively everything nested inside them
 (`entryChoose`, `fillLoop`, `subTableBody`, `backPtrBlock`, `lookLoop`,
 `incrInit`/`incrLoop`/`incrFix`, `advIfStmt`, `t10Stmt`, …).
 
-It has already earned its keep, catching two chunks that were provably about
-the *wrong statement*; both are written up in `NEXT.md` §4. -/
+During development it caught two chunks that were transcriptions of the
+*wrong statement*. -/
 /-- The whole function body, reassembled from the verified chunks. -/
 abbrev fullBody : Stmt :=
   .Ssequence setBase
