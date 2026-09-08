@@ -1,7 +1,7 @@
 {"version": "1.2.0",
  "packagesDir": ".lake/packages",
  "packages":
- [{"url": "https://github.com/Certora/CompCert.git",
+ [{"url": "https://github.com/Certora/clean.git",
    "type": "git",
    "subDir": "export",
    "scope": "",
