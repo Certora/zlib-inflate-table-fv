@@ -1,0 +1,13 @@
+{"version": "1.2.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"type": "path",
+   "scope": "",
+   "name": "«compcert-clight-lean»",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../../../CompCert-3.17/export",
+   "configFile": "lakefile.toml"}],
+ "name": "«zlib-fv»",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}
